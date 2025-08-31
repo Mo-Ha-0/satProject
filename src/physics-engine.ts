@@ -99,6 +99,7 @@ export default class PhysicsEngine {
     airEnabled?: boolean;
     timeScale?: number;
   }) {
+    
     // Default values
     const height =
       options?.position?.length() || this.simulation.EARTH_RADIUS + 400000;
@@ -125,6 +126,7 @@ export default class PhysicsEngine {
       airEnabled,
       timeScale,
     });
+    
   }
 
   reset() {
@@ -137,90 +139,97 @@ export default class PhysicsEngine {
   }
 
   updatePhysics(deltaTime: number) {
-    // Simple, fast physics like the original - just for the first satellite
+    // Handle all satellites, not just the first one
     if (this.satellites.length === 0) return;
     
-    const sat = this.satellites[0]; // Focus on first satellite for performance
+    // Update each satellite individually
+    for (let i = 0; i < this.satellites.length; i++) {
+      const sat = this.satellites[i];
+      
+      // Direct time scale application like the original
+      const dt = deltaTime * this.simulation.timeScale;
+      
+      // Skip complex substep calculations for speed
+      const distance = sat.position.length();
+      
+      // Simple crash check
+      if (distance <= this.simulation.EARTH_RADIUS + 50000) { // 50km crash threshold
+        const statusElement = document.getElementById("status");
+        if (statusElement) {
+          statusElement.textContent = `Satellite ${i + 1} Crashed!`;
+        }
+        continue; // Skip this satellite but continue with others
+      }
+      
+      // Calculate gravitational force (simplified)
+      const forceMagnitude = (this.simulation.G * this.simulation.EARTH_MASS * sat.mass) / (distance * distance);
+      const forceDirection = sat.position.clone().normalize().multiplyScalar(-1);
+      const gravityForce = forceDirection.multiplyScalar(forceMagnitude);
+      
+      // Simple atmospheric drag force
+      let dragForce = new THREE.Vector3(0, 0, 0);
+      const altitude = distance - this.simulation.EARTH_RADIUS;
+      
+      if (altitude < 500000 && sat.velocity.length() > 1) { // Below 500km and moving
+        // Simple exponential atmosphere model - much faster than complex calculations
+        const atmosphereDensity = 1.225 * Math.exp(-altitude / 8500); // kg/m³
+        
+        const velocity = sat.velocity.length();
+        const dragCoeff = sat.dragCoefficient ?? 2.2;
+        const area = sat.area ?? 4;
+        
+        // Drag force magnitude: F = 0.5 * ρ * v² * Cd * A
+        const dragMagnitude = 0.5 * atmosphereDensity * velocity * velocity * dragCoeff * area;
+        
+        // Drag direction opposite to velocity
+        const velocityDirection = sat.velocity.clone().normalize();
+        dragForce = velocityDirection.multiplyScalar(-dragMagnitude);
+      }
+      
+      // Combine forces
+      const totalForce = gravityForce.add(dragForce);
+      
+      // Calculate acceleration (F = ma, so a = F/m)
+      const acceleration = totalForce.divideScalar(sat.mass);
+      
+      // Simple Euler integration - fast like original
+      sat.velocity.add(acceleration.multiplyScalar(dt));
+      sat.position.add(sat.velocity.clone().multiplyScalar(dt));
+      
+      // Update trail for this specific satellite
+      if (!this.simulation.sceneSetup.trails[i]) {
+        this.simulation.sceneSetup.trails[i] = [];
+      }
+      
+      const trail = this.simulation.sceneSetup.trails[i];
+      if (trail.length === 0 || sat.position.distanceTo(trail[trail.length - 1]) > 1000) {
+        trail.push(sat.position.clone());
+        if (trail.length > this.simulation.sceneSetup.maxTrailLength) {
+          trail.shift();
+        }
+      }
+      
+      // Update satellite visual position
+      if (this.simulation.sceneSetup.satellites[i]) {
+        this.simulation.sceneSetup.satellites[i].position.copy(
+          sat.position.clone().multiplyScalar(this.simulation.SCALE_FACTOR)
+        );
+      }
+    }
     
-    // Direct time scale application like the original
-    const dt = deltaTime * this.simulation.timeScale;
-    
-    // Skip complex substep calculations for speed
-    const distance = sat.position.length();
-    
-    // Simple crash check
-    if (distance <= this.simulation.EARTH_RADIUS + 50000) { // 50km crash threshold
+    // Update status for the first satellite (for UI compatibility)
+    if (this.satellites.length > 0) {
+      const firstSat = this.satellites[0];
+      const distance = firstSat.position.length();
+      const escapeVelocity = Math.sqrt((2 * this.simulation.G * this.simulation.EARTH_MASS) / distance);
+      const currentSpeed = firstSat.velocity.length();
       const statusElement = document.getElementById("status");
       if (statusElement) {
-        statusElement.textContent = "Crashed!";
-      }
-      return;
-    }
-    
-    // Calculate gravitational force (simplified)
-    const forceMagnitude = (this.simulation.G * this.simulation.EARTH_MASS * sat.mass) / (distance * distance);
-    const forceDirection = sat.position.clone().normalize().multiplyScalar(-1);
-    const gravityForce = forceDirection.multiplyScalar(forceMagnitude);
-    
-    // Simple atmospheric drag force
-    let dragForce = new THREE.Vector3(0, 0, 0);
-    const altitude = distance - this.simulation.EARTH_RADIUS;
-    
-    if (altitude < 500000 && sat.velocity.length() > 1) { // Below 500km and moving
-      // Simple exponential atmosphere model - much faster than complex calculations
-      const atmosphereDensity = 1.225 * Math.exp(-altitude / 8500); // kg/m³
-      
-      const velocity = sat.velocity.length();
-      const dragCoeff = sat.dragCoefficient ?? 2.2;
-      const area = sat.area ?? 4;
-      
-      // Drag force magnitude: F = 0.5 * ρ * v² * Cd * A
-      const dragMagnitude = 0.5 * atmosphereDensity * velocity * velocity * dragCoeff * area;
-      
-      // Drag direction opposite to velocity
-      const velocityDirection = sat.velocity.clone().normalize();
-      dragForce = velocityDirection.multiplyScalar(-dragMagnitude);
-    }
-    
-    // Combine forces
-    const totalForce = gravityForce.add(dragForce);
-    
-    // Calculate acceleration (F = ma, so a = F/m)
-    const acceleration = totalForce.divideScalar(sat.mass);
-    
-    // Simple Euler integration - fast like original
-    sat.velocity.add(acceleration.multiplyScalar(dt));
-    sat.position.add(sat.velocity.clone().multiplyScalar(dt));
-    
-    // Update trail (simplified)
-    if (!this.simulation.sceneSetup.trails[0]) {
-      this.simulation.sceneSetup.trails[0] = [];
-    }
-    
-    const trail = this.simulation.sceneSetup.trails[0];
-    if (trail.length === 0 || sat.position.distanceTo(trail[trail.length - 1]) > 1000) {
-      trail.push(sat.position.clone());
-      if (trail.length > this.simulation.sceneSetup.maxTrailLength) {
-        trail.shift();
-      }
-    }
-    
-    // Update satellite visual position
-    if (this.simulation.sceneSetup.satellites[0]) {
-      this.simulation.sceneSetup.satellites[0].position.copy(
-        sat.position.clone().multiplyScalar(this.simulation.SCALE_FACTOR)
-      );
-    }
-    
-    // Update status
-    const escapeVelocity = Math.sqrt((2 * this.simulation.G * this.simulation.EARTH_MASS) / distance);
-    const currentSpeed = sat.velocity.length();
-    const statusElement = document.getElementById("status");
-    if (statusElement) {
-      if (currentSpeed > escapeVelocity) {
-        statusElement.textContent = "Escaping!";
-      } else {
-        statusElement.textContent = "Orbiting";
+        if (currentSpeed > escapeVelocity) {
+          statusElement.textContent = "Escaping!";
+        } else {
+          statusElement.textContent = "Orbiting";
+        }
       }
     }
     
@@ -232,7 +241,11 @@ export default class PhysicsEngine {
   updateInfo() {
     if (this.satellites.length === 0) return;
     
-    const sat = this.satellites[0];
+    // Get the currently followed satellite index from camera controller
+    const followIndex = this.simulation.cameraController?.followSatelliteIndex || 0;
+    const satIndex = Math.min(followIndex, this.satellites.length - 1);
+    const sat = this.satellites[satIndex];
+    
     const distance = sat.position.length();
     const altitude = (distance - this.simulation.EARTH_RADIUS) / 1000; // km
     const speed = sat.velocity.length(); // m/s
@@ -295,6 +308,18 @@ export default class PhysicsEngine {
       } else {
         dragForceElement.textContent = "0 N";
       }
+    }
+
+    // Add satellite count display
+    const satelliteCountElement = document.getElementById("satelliteCount");
+    if (satelliteCountElement) {
+      satelliteCountElement.textContent = `${this.satellites.length} satellite${this.satellites.length !== 1 ? 's' : ''}`;
+    }
+
+    // Add current satellite number display
+    const currentSatelliteElement = document.getElementById("currentSatellite");
+    if (currentSatelliteElement) {
+      currentSatelliteElement.textContent = `Satellite ${satIndex + 1} of ${this.satellites.length}`;
     }
   }
 }

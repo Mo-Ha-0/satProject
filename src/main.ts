@@ -103,33 +103,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  document.getElementById("addSatelliteBtn")?.addEventListener("click", async () => {
-    const heightInput = document.getElementById("height") as HTMLInputElement;
-    const earthRadius = window.simulation.EARTH_RADIUS;
-    const height = parseFloat(heightInput.value) * 1000; // km to m
-    const x = earthRadius + height;
-    const y = 0;
-    const z = 0;
-    const velocityMag = parseFloat((document.getElementById("velocity") as HTMLInputElement).value);
-    const directionDeg = parseFloat((document.getElementById("direction") as HTMLInputElement).value);
-    const mass = parseFloat((document.getElementById("mass") as HTMLInputElement).value);
-    const dragCoeff = parseFloat((document.getElementById("dragCoeff") as HTMLInputElement).value);
-    const area = parseFloat((document.getElementById("area") as HTMLInputElement).value);
-    const directionRad = directionDeg * Math.PI / 180;
-    const velocity = new THREE.Vector3(
-      velocityMag * Math.cos(directionRad),
-      velocityMag * Math.sin(directionRad),
-      0
-    );
-    await window.simulation.sceneSetup.addSatellite({
-      position: new THREE.Vector3(x, y, z),
-      velocity,
-      mass,
-      dragCoefficient: dragCoeff,
-      area: area
-    });
-    updateSatelliteUI();
-  });
+  // REMOVED: Duplicate addSatelliteBtn event listener - this is now handled by ControlsManager
+  // The ControlsManager already sets up the proper event listener for adding satellites
 
   document.getElementById("followSelect")?.addEventListener("change", (e) => {
     const idx = parseInt((e.target as HTMLSelectElement).value, 10);

@@ -20,6 +20,7 @@
           <h4>Satellites</h4>
           <div id="satellite-list"></div>
           <button id="addSatelliteBtn">Add Satellite</button>
+          <button id="removeSatelliteBtn" class="remove-btn">Remove Selected</button>
           <label for="followSelect">Follow Satellite:</label>
           <select id="followSelect"></select>
         </div>
@@ -235,6 +236,14 @@
         <div class="info-item">
           <span class="info-label">Status:</span>
           <span class="info-value" id="status">Orbiting</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Satellites:</span>
+          <span class="info-value" id="satelliteCount">1 satellite</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Current:</span>
+          <span class="info-value" id="currentSatellite">Satellite 1 of 1</span>
         </div>
         <div class="info-item">
           <span class="info-label">Camera Mode:</span>

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import SatelliteSimulation from "./simulation";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { EnhancedEffects } from "./enhanced-effects";
 
 export default class SceneSetup {
   simulation: SatelliteSimulation;
@@ -56,6 +57,12 @@ export default class SceneSetup {
     // Add lighting
     this.addLighting();
 
+    // Add enhanced visual effects
+    const enhancedEffects = new EnhancedEffects(this.renderer, this.scene, this.camera);
+    enhancedEffects.enhanceRenderer();
+    enhancedEffects.addAtmosphericFog();
+    enhancedEffects.createLensFlare();
+
     // Camera position
     this.camera.position.set(0, 0, 800);
     this.camera.lookAt(0, 0, 0);
@@ -94,14 +101,19 @@ export default class SceneSetup {
     this.trailLines.push(trailLine);
     // Register initial state in physics engine
     this.simulation.physicsEngine.addSatelliteState(options);
+
+    // Update the satellite list in the UI
+    if (this.simulation.controlsManager) {
+      this.simulation.controlsManager.updateSatelliteList();
+    }
   }
 
   createEarth(): THREE.Group {
     const group = new THREE.Group();
     const earthGeometry = new THREE.SphereGeometry(
       this.simulation.EARTH_RADIUS * this.simulation.SCALE_FACTOR,
-      64,
-      64
+      128, // Increased resolution for better detail
+      128
     );
 
     // Load Earth textures with error handling
@@ -130,34 +142,116 @@ export default class SceneSetup {
       });
     };
 
-    // Load textures with fallbacks
+    // Load all textures with fallbacks
     Promise.all([
       loadTextureWithFallback("./assets/models/earth/textures/earth albedo.jpg", 0x4444ff),
       loadTextureWithFallback("./assets/models/earth/textures/earth bump.jpg", 0x444444),
-      loadTextureWithFallback("./assets/models/earth/textures/earth night_lights_modified.png", 0x000000)
-    ]).then(([albedoTexture, bumpTexture, nightLightsTexture]) => {
-      // Create Earth material with loaded textures
+      loadTextureWithFallback("./assets/models/earth/textures/earth night_lights_modified.png", 0x000000),
+      loadTextureWithFallback("./assets/models/earth/textures/clouds earth.png", 0xffffff),
+      loadTextureWithFallback("./assets/models/earth/textures/earth land ocean mask.png", 0x444444)
+    ]).then(([albedoTexture, bumpTexture, nightLightsTexture, cloudsTexture, landOceanMask]) => {
+      // Create enhanced Earth material
       const earthMaterial = new THREE.MeshPhongMaterial({
         map: albedoTexture,
         bumpMap: bumpTexture,
-        bumpScale: 0.05,
-        shininess: 30,
-        specular: 0x222222,
+        bumpScale: 0.1, // Increased bump intensity
+        shininess: 25,
+        specular: 0x333333,
         emissive: 0x000000,
         emissiveMap: nightLightsTexture,
+        emissiveIntensity: 0.3, // Night lights intensity
+        transparent: true,
+        opacity: 1.0,
       });
 
       const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
       group.add(earthMesh);
+
+      // Add cloud layer for atmosphere
+      const cloudGeometry = new THREE.SphereGeometry(
+        (this.simulation.EARTH_RADIUS * this.simulation.SCALE_FACTOR) + 2, // Slightly larger than Earth
+        128,
+        128
+      );
+
+      const cloudMaterial = new THREE.MeshPhongMaterial({
+        map: cloudsTexture,
+        transparent: true,
+        opacity: 0.4, // Semi-transparent clouds
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+
+      const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
+      group.add(cloudMesh);
+
+      // Add atmospheric glow effect
+      const atmosphereGeometry = new THREE.SphereGeometry(
+        (this.simulation.EARTH_RADIUS * this.simulation.SCALE_FACTOR) + 8,
+      64,
+      64
+    );
+
+      const atmosphereMaterial = new THREE.MeshPhongMaterial({
+        color: 0x87CEEB, // Sky blue
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+      group.add(atmosphereMesh);
+
+      // Add specular highlights for ocean reflection
+      const oceanSpecularMaterial = new THREE.MeshPhongMaterial({
+        color: 0x006994, // Ocean blue
+        transparent: true,
+        opacity: 0.3,
+        shininess: 100,
+        specular: 0x444444,
+        side: THREE.FrontSide,
+      });
+
+      const oceanMesh = new THREE.Mesh(earthGeometry, oceanSpecularMaterial);
+      oceanMesh.material = oceanSpecularMaterial;
+      group.add(oceanMesh);
+
+      // Animate clouds rotation
+      const animateClouds = () => {
+        cloudMesh.rotation.y += 0.0005; // Slow cloud rotation
+        requestAnimationFrame(animateClouds);
+      };
+      animateClouds();
+
+      // Add subtle Earth glow effect
+      const glowGeometry = new THREE.SphereGeometry(
+        (this.simulation.EARTH_RADIUS * this.simulation.SCALE_FACTOR) + 1,
+        64,
+        64
+      );
+
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x87CEEB,
+        transparent: true,
+        opacity: 0.05,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+      group.add(glowMesh);
+
     }).catch((error) => {
       console.error("Error loading Earth textures:", error);
-      // Fallback to basic material
+      // Fallback to basic material with enhanced colors
       const earthMaterial = new THREE.MeshPhongMaterial({
-        color: 0x4444ff,
+        color: 0x4A90E2, // Better blue color
         shininess: 30,
+        specular: 0x222222,
       });
-      const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
-      group.add(earthMesh);
+    const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+    group.add(earthMesh);
     });
 
     return group;
@@ -165,21 +259,24 @@ export default class SceneSetup {
 
   createSatellite(): THREE.Group {
     const group = new THREE.Group();
-    const satGeometry = new THREE.SphereGeometry(5, 16, 16);
+    const satGeometry = new THREE.SphereGeometry(5, 32, 32); // Higher resolution
     const satMaterial = new THREE.MeshPhongMaterial({
       color: 0xff6b35,
       emissive: 0x222222,
-      shininess: 50,
+      shininess: 80, // More reflective
+      specular: 0x444444,
     });
 
     const body = new THREE.Mesh(satGeometry, satMaterial);
     group.add(body);
 
-    // Solar panels
+    // Solar panels with enhanced materials
     const panelGeometry = new THREE.BoxGeometry(20, 5, 1);
     const panelMaterial = new THREE.MeshPhongMaterial({
-      color: 0x333333,
+      color: 0x1a1a1a, // Darker, more realistic
       emissive: 0x111111,
+      shininess: 100, // Very reflective like solar panels
+      specular: 0x666666,
     });
 
     const panel1 = new THREE.Mesh(panelGeometry, panelMaterial);
@@ -197,8 +294,9 @@ export default class SceneSetup {
     const starsGeometry = new THREE.BufferGeometry();
     const starsMaterial = new THREE.PointsMaterial({
       color: 0xffffff,
-      size: 1.5,
+      size: 2.0, // Slightly larger stars
       transparent: true,
+      sizeAttenuation: true,
     });
 
     const vertices = [];
@@ -218,17 +316,37 @@ export default class SceneSetup {
   }
 
   addLighting() {
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    // Enhanced ambient lighting for better overall illumination
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
     this.scene.add(ambientLight);
 
-    // Create directional light for the sun
-    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    // Create directional light for the sun with enhanced properties
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
     this.sunLight.position.set(100, 100, 50);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.width = 2048;
+    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.camera.near = 0.5;
+    this.sunLight.shadow.camera.far = 500;
+    this.sunLight.shadow.camera.left = -100;
+    this.sunLight.shadow.camera.right = 100;
+    this.sunLight.shadow.camera.top = 100;
+    this.sunLight.shadow.camera.bottom = -100;
     this.scene.add(this.sunLight);
 
-    // Add a second light for night side illumination
-    this.nightLight = new THREE.AmbientLight(0x111133, 0.2);
+    // Add a second light for night side illumination with warmer tone
+    this.nightLight = new THREE.AmbientLight(0x1a1a3a, 0.3);
     this.scene.add(this.nightLight);
+
+    // Add a subtle blue fill light for atmospheric effect
+    const fillLight = new THREE.DirectionalLight(0x87CEEB, 0.2);
+    fillLight.position.set(-50, -30, -20);
+    this.scene.add(fillLight);
+
+    // Add a rim light for better edge definition
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    rimLight.position.set(0, 0, -100);
+    this.scene.add(rimLight);
   }
 
   updateTrails() {

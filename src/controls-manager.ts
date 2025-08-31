@@ -3,6 +3,7 @@ import * as THREE from "three";
 
 export default class ControlsManager {
   simulation: SatelliteSimulation;
+  private controlsSetup: boolean = false;
 
   constructor(simulation: SatelliteSimulation) {
     this.simulation = simulation;
@@ -10,6 +11,12 @@ export default class ControlsManager {
   }
 
   setupControls() {
+    // Prevent multiple setups
+    if (this.controlsSetup) {
+      return;
+    }
+    this.controlsSetup = true;
+    
     // Sync sliders with number inputs
     const controls = [
       { slider: "simSpeed", input: "simSpeedVal" },
@@ -30,11 +37,45 @@ export default class ControlsManager {
         });
 
         inputEl.addEventListener("input", () => {
-          sliderEl.value = inputEl.value;
+          sliderEl.value = sliderEl.value;
           this.updateSimulation();
         });
       }
     });
+
+    // Add satellite button
+    const addSatelliteBtn = document.getElementById("addSatelliteBtn");
+    if (addSatelliteBtn) {
+      let isAdding = false; // Prevent multiple rapid clicks
+      addSatelliteBtn.addEventListener("click", async () => {
+        if (isAdding) {
+          console.log("Already adding a satellite, please wait...");
+          return;
+        }
+        isAdding = true;
+        await this.addSatellite();
+        isAdding = false;
+      });
+    }
+
+    // Remove satellite button
+    const removeSatelliteBtn = document.getElementById("removeSatelliteBtn");
+    if (removeSatelliteBtn) {
+      removeSatelliteBtn.addEventListener("click", () => {
+        this.removeSelectedSatellite();
+      });
+    }
+
+    // Follow satellite select
+    const followSelect = document.getElementById("followSelect") as HTMLSelectElement;
+    if (followSelect) {
+      followSelect.addEventListener("change", () => {
+        const selectedIndex = parseInt(followSelect.value);
+        if (!isNaN(selectedIndex)) {
+          this.simulation.cameraController.followSatelliteIndex = selectedIndex;
+        }
+      });
+    }
 
     // Camera mode buttons
     const freeCamBtn = document.getElementById("freeCam");
@@ -94,6 +135,9 @@ export default class ControlsManager {
         this.simulation.resetSatellite();
       });
     }
+
+    // Initial satellite list update
+    this.updateSatelliteList();
   }
 
   setScenario(scenario: "crash" | "orbit" | "escape") {
@@ -177,5 +221,143 @@ export default class ControlsManager {
         btn.classList.add('active');
       }
     });
+  }
+
+  async addSatellite() {
+    // Get current UI values
+    const heightInput = document.getElementById("height") as HTMLInputElement;
+    const massInput = document.getElementById("mass") as HTMLInputElement;
+    const velocityInput = document.getElementById("velocity") as HTMLInputElement;
+    const directionInput = document.getElementById("direction") as HTMLInputElement;
+    const dragCoeffInput = document.getElementById("dragCoeff") as HTMLInputElement;
+    const areaInput = document.getElementById("area") as HTMLInputElement;
+
+    if (!heightInput || !massInput || !velocityInput || !directionInput || !dragCoeffInput || !areaInput) {
+      console.error("Required input elements not found");
+      return;
+    }
+
+    const height = parseFloat(heightInput.value) * 1000; // km to m
+    const mass = parseFloat(massInput.value);
+    const velocityMagnitude = parseFloat(velocityInput.value);
+    const directionDegrees = parseFloat(directionInput.value);
+    const dragCoeff = parseFloat(dragCoeffInput.value);
+    const area = parseFloat(areaInput.value);
+
+    // Calculate position and velocity
+    const earthRadius = this.simulation.EARTH_RADIUS;
+    const position = new THREE.Vector3(earthRadius + height, 0, 0);
+    
+    // Convert direction to radians and calculate velocity components
+    const directionRadians = (directionDegrees * Math.PI) / 180;
+    const velocity = new THREE.Vector3(
+      velocityMagnitude * Math.cos(directionRadians),
+      velocityMagnitude * Math.sin(directionRadians),
+      0
+    );
+
+    // Add the satellite
+    await this.simulation.sceneSetup.addSatellite({
+      position,
+      velocity,
+      mass,
+      dragCoefficient: dragCoeff,
+      area
+    });
+
+    // Update the satellite list
+    this.updateSatelliteList();
+  }
+
+  removeSelectedSatellite() {
+    const followSelect = document.getElementById("followSelect") as HTMLSelectElement;
+    if (!followSelect || followSelect.value === "") return;
+
+    const selectedIndex = parseInt(followSelect.value);
+    if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= this.simulation.sceneSetup.satellites.length) {
+      return;
+    }
+
+    // Remove from physics engine
+    this.simulation.physicsEngine.satellites.splice(selectedIndex, 1);
+
+    // Remove from scene
+    const satellite = this.simulation.sceneSetup.satellites[selectedIndex];
+    if (satellite) {
+      this.simulation.scene.remove(satellite);
+      this.simulation.sceneSetup.satellites.splice(selectedIndex, 1);
+    }
+
+    // Remove trail line
+    const trailLine = this.simulation.sceneSetup.trailLines[selectedIndex];
+    if (trailLine) {
+      this.simulation.scene.remove(trailLine);
+      this.simulation.sceneSetup.trailLines.splice(selectedIndex, 1);
+    }
+
+    // Remove trail data
+    this.simulation.sceneSetup.trails.splice(selectedIndex, 1);
+
+    // Update camera follow index if needed
+    if (this.simulation.cameraController.followSatelliteIndex >= this.simulation.sceneSetup.satellites.length) {
+      this.simulation.cameraController.followSatelliteIndex = Math.max(0, this.simulation.sceneSetup.satellites.length - 1);
+    }
+
+    // Update the satellite list
+    this.updateSatelliteList();
+  }
+
+  updateSatelliteList() {
+    const satelliteList = document.getElementById("satellite-list");
+    const followSelect = document.getElementById("followSelect") as HTMLSelectElement;
+    
+    if (!satelliteList || !followSelect) return;
+
+    // Clear existing list
+    satelliteList.innerHTML = "";
+    followSelect.innerHTML = "";
+
+    const satellites = this.simulation.sceneSetup.satellites;
+    
+    if (satellites.length === 0) {
+      satelliteList.innerHTML = "<div class='no-satellites'>No satellites</div>";
+      followSelect.innerHTML = "<option value=''>No satellites</option>";
+      return;
+    }
+
+    // Create satellite list items
+    satellites.forEach((satellite, index) => {
+      const listItem = document.createElement("div");
+      listItem.className = "satellite-item";
+      listItem.innerHTML = `
+        <span class="satellite-number">Satellite ${index + 1}</span>
+        <span class="satellite-position">${satellite.position.x.toFixed(0)}, ${satellite.position.y.toFixed(0)}, ${satellite.position.z.toFixed(0)}</span>
+      `;
+      
+      // Add click handler to select this satellite
+      listItem.addEventListener("click", () => {
+        followSelect.value = index.toString();
+        this.simulation.cameraController.followSatelliteIndex = index;
+        this.updateSatelliteList(); // Refresh to show selection
+      });
+
+      // Highlight selected satellite
+      if (index === this.simulation.cameraController.followSatelliteIndex) {
+        listItem.classList.add("selected");
+      }
+
+      satelliteList.appendChild(listItem);
+
+      // Add to follow select
+      const option = document.createElement("option");
+      option.value = index.toString();
+      option.textContent = `Satellite ${index + 1}`;
+      followSelect.appendChild(option);
+    });
+
+    // Set current selection
+    if (satellites.length > 0) {
+      followSelect.value = this.simulation.cameraController.followSatelliteIndex.toString();
+    }
   }
 }

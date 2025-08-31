@@ -98,10 +98,87 @@ input[type="number"] {
   padding: 8px 12px;
   color: white;
   cursor: pointer;
-  font-size: 11px;
+}
+
+.remove-btn {
+  background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: white;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.remove-btn:hover {
+  background: linear-gradient(135deg, #b91c1c, #dc2626) !important;
+}
+
+#satellite-list {
+  margin: 10px 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.satellite-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.satellite-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.satellite-item.selected {
+  background: rgba(59, 130, 246, 0.4);
+  border-left: 3px solid #60a5fa;
+}
+
+.satellite-item:last-child {
+  border-bottom: none;
+}
+
+.satellite-number {
   font-weight: 600;
-  transition: all 0.3s ease;
-  min-width: 80px;
+  color: #60a5fa;
+}
+
+.satellite-position {
+  font-size: 11px;
+  color: #a0c4ff;
+  opacity: 0.8;
+}
+
+.no-satellites {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+}
+
+#followSelect {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  padding: 6px 10px;
+  color: white;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+#followSelect option {
+  background: #1e3a8a;
+  color: white;
 }
 
 .scenario-btn:hover {

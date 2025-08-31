@@ -26,6 +26,7 @@ export default class SatelliteSimulation {
   isRunning: boolean = true;
   timeScale: number = 1;
   private lastTime: number = 0;
+  private frameCount: number = 0;
 
   constructor() {
     this.sceneSetup = new SceneSetup(this);
@@ -39,30 +40,17 @@ export default class SatelliteSimulation {
 
     this.physicsEngine.reset();
     
-    // Add a default satellite for immediate testing
-    this.addInitialSatellite();
-    
+    // No initial satellites - users add them via UI
     this.sceneSetup.updateInfo();
     this.animate();
   }
 
-  private async addInitialSatellite() {
-    // Add default satellite at 400km altitude with orbital velocity
-    const height = 400000; // 400km
-    const position = new THREE.Vector3(this.EARTH_RADIUS + height, 0, 0);
-    const velocity = new THREE.Vector3(0, 7800, 0); // ~orbital velocity
-    
-    await this.sceneSetup.addSatellite({
-      position,
-      velocity,
-      mass: 1000,
-      dragCoefficient: 2.2,
-      area: 4
-    });
-  }
+
 
   animate() {
     requestAnimationFrame(() => this.animate());
+
+    this.frameCount++;
 
     if (this.isRunning) {
       // Use simple fixed timestep like the original - much faster!
@@ -84,6 +72,11 @@ export default class SatelliteSimulation {
     );
 
     this.renderer.render(this.scene, this.camera);
+
+    // Update satellite list periodically (every 60 frames = ~1 second)
+    if (this.frameCount % 60 === 0) {
+      this.controlsManager.updateSatelliteList();
+    }
   }
 
   resetSatellite() {
