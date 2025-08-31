@@ -28,29 +28,29 @@ export class EnhancedEffects {
   }
 
   // Create lens flare effect for the sun
-  createLensFlare() {
-    const textureLoader = new THREE.TextureLoader();
+  // createLensFlare() {
+  //   const textureLoader = new THREE.TextureLoader();
     
-    // Create a simple lens flare using sprites
-    const flareGeometry = new THREE.SphereGeometry(20, 16, 16);
-    const flareMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffaa,
-      transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending,
-    });
+  //   // Create a simple lens flare using sprites
+  //   const flareGeometry = new THREE.SphereGeometry(20, 16, 16);
+  //   const flareMaterial = new THREE.MeshBasicMaterial({
+  //     color: 0xffffaa,
+  //     transparent: true,
+  //     opacity: 0.6,
+  //     blending: THREE.AdditiveBlending,
+  //   });
 
-    const flare = new THREE.Mesh(flareGeometry, flareMaterial);
-    flare.position.set(200, 200, 100);
-    this.scene.add(flare);
+  //   const flare = new THREE.Mesh(flareGeometry, flareMaterial);
+  //   flare.position.set(200, 200, 100);
+  //   this.scene.add(flare);
 
-    // Animate the flare
-    const animateFlare = () => {
-      flare.material.opacity = 0.3 + Math.sin(Date.now() * 0.001) * 0.3;
-      requestAnimationFrame(animateFlare);
-    };
-    animateFlare();
-  }
+  //   // Animate the flare
+  //   const animateFlare = () => {
+  //     flare.material.opacity = 0.3 + Math.sin(Date.now() * 0.001) * 0.3;
+  //     requestAnimationFrame(animateFlare);
+  //   };
+  //   animateFlare();
+  // }
 
   // Add subtle camera shake for realism
   addCameraShake(intensity: number = 0.1) {

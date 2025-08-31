@@ -61,7 +61,7 @@ export default class SceneSetup {
     const enhancedEffects = new EnhancedEffects(this.renderer, this.scene, this.camera);
     enhancedEffects.enhanceRenderer();
     enhancedEffects.addAtmosphericFog();
-    enhancedEffects.createLensFlare();
+    // enhancedEffects.createLensFlare(); // Removed - was appearing as unwanted sphere
 
     // Camera position
     this.camera.position.set(0, 0, 800);
