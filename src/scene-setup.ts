@@ -73,9 +73,9 @@ export default class SceneSetup {
     const satellite = new THREE.Group();
     try {
       const loader = new GLTFLoader();
-      const satData = await loader.loadAsync(
-        "./assets/models/Satellite/Satellite.gltf"
-      );
+             const satData = await loader.loadAsync(
+         "/assets/models/Satellite/Satellite.gltf"
+       );
       const satModel = satData.scene;
       satModel.scale.set(0.01, 0.01, 0.01);
       satellite.add(satModel);
@@ -142,14 +142,14 @@ export default class SceneSetup {
       });
     };
 
-    // Load all textures with fallbacks
-    Promise.all([
-      loadTextureWithFallback("./assets/models/earth/textures/earth albedo.jpg", 0x4444ff),
-      loadTextureWithFallback("./assets/models/earth/textures/earth bump.jpg", 0x444444),
-      loadTextureWithFallback("./assets/models/earth/textures/earth night_lights_modified.png", 0x000000),
-      loadTextureWithFallback("./assets/models/earth/textures/clouds earth.png", 0xffffff),
-      loadTextureWithFallback("./assets/models/earth/textures/earth land ocean mask.png", 0x444444)
-    ]).then(([albedoTexture, bumpTexture, nightLightsTexture, cloudsTexture, landOceanMask]) => {
+         // Load all textures with fallbacks
+     Promise.all([
+       loadTextureWithFallback("/assets/models/earth/textures/earth albedo.jpg", 0x4444ff),
+       loadTextureWithFallback("/assets/models/earth/textures/earth bump.jpg", 0x444444),
+       loadTextureWithFallback("/assets/models/earth/textures/earth night_lights_modified.png", 0x000000),
+       loadTextureWithFallback("/assets/models/earth/textures/clouds earth.png", 0xffffff),
+       loadTextureWithFallback("/assets/models/earth/textures/earth land ocean mask.png", 0x444444)
+     ]).then(([albedoTexture, bumpTexture, nightLightsTexture, cloudsTexture, landOceanMask]) => {
       // Create enhanced Earth material
       const earthMaterial = new THREE.MeshPhongMaterial({
         map: albedoTexture,
