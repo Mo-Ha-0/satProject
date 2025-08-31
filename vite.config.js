@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "./",
+  base: "/",
   build: {
     outDir: "dist",
-    assetsDir: ".",
+    assetsDir: "assets",
     rollupOptions: {
       input: "index.html",
     },

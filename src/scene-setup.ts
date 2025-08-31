@@ -67,7 +67,7 @@ export default class SceneSetup {
     try {
       const loader = new GLTFLoader();
       const satData = await loader.loadAsync(
-        "/assets/models/Satellite/Satellite.gltf"
+        "./assets/models/Satellite/Satellite.gltf"
       );
       const satModel = satData.scene;
       satModel.scale.set(0.01, 0.01, 0.01);
@@ -104,33 +104,62 @@ export default class SceneSetup {
       64
     );
 
-    // Load Earth textures
+    // Load Earth textures with error handling
     const textureLoader = new THREE.TextureLoader();
+    
+    // Helper function to load texture with fallback
+    const loadTextureWithFallback = (path: string, fallbackColor: number = 0x4444ff) => {
+      return new Promise<THREE.Texture>((resolve) => {
+        textureLoader.load(
+          path,
+          (texture) => resolve(texture),
+          undefined,
+          (error) => {
+            console.warn(`Failed to load texture: ${path}`, error);
+            // Create a fallback colored texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d')!;
+            ctx.fillStyle = `#${fallbackColor.toString(16).padStart(6, '0')}`;
+            ctx.fillRect(0, 0, 512, 512);
+            const fallbackTexture = new THREE.CanvasTexture(canvas);
+            resolve(fallbackTexture);
+          }
+        );
+      });
+    };
 
-    // Use available textures
-    const albedoTexture = textureLoader.load(
-      "/assets/models/earth/textures/earth albedo.jpg"
-    );
-    const bumpTexture = textureLoader.load(
-      "/assets/models/earth/textures/earth bump.jpg"
-    );
-    const nightLightsTexture = textureLoader.load(
-      "/assets/models/earth/textures/earth night_lights_modified.png"
-    );
+    // Load textures with fallbacks
+    Promise.all([
+      loadTextureWithFallback("./assets/models/earth/textures/earth albedo.jpg", 0x4444ff),
+      loadTextureWithFallback("./assets/models/earth/textures/earth bump.jpg", 0x444444),
+      loadTextureWithFallback("./assets/models/earth/textures/earth night_lights_modified.png", 0x000000)
+    ]).then(([albedoTexture, bumpTexture, nightLightsTexture]) => {
+      // Create Earth material with loaded textures
+      const earthMaterial = new THREE.MeshPhongMaterial({
+        map: albedoTexture,
+        bumpMap: bumpTexture,
+        bumpScale: 0.05,
+        shininess: 30,
+        specular: 0x222222,
+        emissive: 0x000000,
+        emissiveMap: nightLightsTexture,
+      });
 
-    // Create Earth material (simplified)
-    const earthMaterial = new THREE.MeshPhongMaterial({
-      map: albedoTexture, // Main color texture
-      bumpMap: bumpTexture, // Elevation/bump map
-      bumpScale: 0.05, // Adjust bump intensity
-      shininess: 30, // Adjust shininess
-      specular: 0x222222, // Specular color
-      emissive: 0x000000, // Base emissive color
-      emissiveMap: nightLightsTexture, // Night lights texture
+      const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+      group.add(earthMesh);
+    }).catch((error) => {
+      console.error("Error loading Earth textures:", error);
+      // Fallback to basic material
+      const earthMaterial = new THREE.MeshPhongMaterial({
+        color: 0x4444ff,
+        shininess: 30,
+      });
+      const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+      group.add(earthMesh);
     });
 
-    const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
-    group.add(earthMesh);
     return group;
   }
 
