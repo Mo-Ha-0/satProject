@@ -1,0 +1,20 @@
+{
+  "name": "my-sat",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/three": "^0.178.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  },
+  "dependencies": {
+    "three": "^0.178.0",
+    "three-stdlib": "^2.36.0"
+  }
+}

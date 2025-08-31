@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satellite Orbital Mechanics Simulation</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="container">
+      <div id="title">Satellite Orbital Mechanics Simulation</div>
+      <div id="instructions">
+        Drag with mouse to orbit camera around Earth | Scroll to zoom | WASD to
+        move in free camera mode
+      </div>
+
+      <div id="controls">
+        <h3>Simulation Controls</h3>
+        <div id="satellite-controls">
+          <h4>Satellites</h4>
+          <div id="satellite-list"></div>
+          <button id="addSatelliteBtn">Add Satellite</button>
+          <label for="followSelect">Follow Satellite:</label>
+          <select id="followSelect"></select>
+        </div>
+
+        <div class="control-group time-scale-group">
+          <label>⚡ Time Scale (Speed Multiplier)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="simSpeed"
+              min="0.1"
+              max="10000"
+              step="1"
+              value="1"
+              class="time-scale-slider"
+            />
+            <input
+              type="number"
+              id="simSpeedVal"
+              min="0.1"
+              max="10000"
+              step="1"
+              value="1"
+              class="time-scale-input"
+            />
+            <span class="time-scale-display">1x</span>
+          </div>
+          
+          <!-- Quick Preset Buttons -->
+          <div class="time-scale-presets">
+            <button class="preset-btn" data-speed="1">1x</button>
+            <button class="preset-btn" data-speed="10">10x</button>
+            <button class="preset-btn" data-speed="50">50x</button>
+            <button class="preset-btn" data-speed="100">100x</button>
+            <button class="preset-btn" data-speed="500">500x</button>
+            <button class="preset-btn" data-speed="1000">1000x</button>
+            <button class="preset-btn" data-speed="5000">5000x</button>
+            <button class="preset-btn ultra" data-speed="10000">🔥 ULTRA</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Satellite Height (km above surface)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="height"
+              min="200"
+              max="50000"
+              step="100"
+              value="400"
+            />
+            <input
+              type="number"
+              id="heightVal"
+              min="200"
+              max="50000"
+              step="100"
+              value="400"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Satellite Mass (kg)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="mass"
+              min="100"
+              max="10000"
+              step="100"
+              value="1000"
+            />
+            <input
+              type="number"
+              id="massVal"
+              min="100"
+              max="10000"
+              step="100"
+              value="1000"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Initial Velocity Magnitude (m/s)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="velocity"
+              min="1000"
+              max="15000"
+              step="100"
+              value="7800"
+            />
+            <input
+              type="number"
+              id="velocityVal"
+              min="1000"
+              max="15000"
+              step="100"
+              value="7800"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Velocity Direction (degrees)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="direction"
+              min="0"
+              max="360"
+              step="5"
+              value="90"
+            />
+            <input
+              type="number"
+              id="directionVal"
+              min="0"
+              max="360"
+              step="5"
+              value="90"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Drag Coefficient</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="dragCoeff"
+              min="0.1"
+              max="5.0"
+              step="0.1"
+              value="2.2"
+            />
+            <input
+              type="number"
+              id="dragCoeffVal"
+              min="0.1"
+              max="5.0"
+              step="0.1"
+              value="2.2"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Cross-Section Area (m²)</label>
+          <div class="control-row">
+            <input
+              type="range"
+              id="area"
+              min="0.1"
+              max="20.0"
+              step="0.1"
+              value="4.0"
+            />
+            <input
+              type="number"
+              id="areaVal"
+              min="0.1"
+              max="20.0"
+              step="0.1"
+              value="4.0"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Preset Scenarios</label>
+          <div class="scenarios">
+            <button class="scenario-btn crash" id="crashScenario">Crash</button>
+            <button class="scenario-btn orbit" id="orbitScenario">Orbit</button>
+            <button class="scenario-btn escape" id="escapeScenario">
+              Escape
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Camera Mode</label>
+          <div class="scenarios">
+            <button class="scenario-btn" id="freeCam">Free</button>
+            <button class="scenario-btn" id="orbitCam">Earth</button>
+            <button class="scenario-btn" id="followCam">Satellite</button>
+          </div>
+        </div>
+
+        <div class="control-group simulation-controls">
+          <button class="play-pause-btn" id="playPause">Pause</button>
+          <button class="reset-btn" id="reset">Reset</button>
+        </div>
+      </div>
+
+      <div id="info">
+        <div class="info-item">
+          <span class="info-label">Altitude:</span>
+          <span class="info-value" id="currentAltitude">0 km</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Speed:</span>
+          <span class="info-value" id="currentSpeed">0 m/s</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Distance from Earth:</span>
+          <span class="info-value" id="currentDistance">0 km</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Status:</span>
+          <span class="info-value" id="status">Orbiting</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Camera Mode:</span>
+          <span class="info-value" id="cameraMode">Orbit</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Current Time Scale:</span>
+          <span class="info-value" id="currentTimeScale">1.0x</span>
+        </div>
+        
+        <!-- Drag Force Information -->
+        <div class="info-item">
+          <span class="info-label">Drag Coefficient:</span>
+          <span class="info-value" id="currentDragCoeff">2.2</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Cross-Section Area:</span>
+          <span class="info-value" id="currentArea">4 m²</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Air Resistance:</span>
+          <span class="info-value" id="currentAirEnabled">Enabled</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Atmospheric Density:</span>
+          <span class="info-value" id="currentDensity">1.225 kg/m³</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Current Drag Force:</span>
+          <span class="info-value" id="currentDragForce">0 N</span>
+        </div>
+      </div>
+
+      <div id="controls-help">
+        <div class="help-section">
+          <div class="help-title">Free Camera Controls:</div>
+          <div>WASD - Move camera</div>
+          <div>Arrow Keys - Rotate view</div>
+          <div>RF - Up/Down</div>
+          <div>Mouse wheel - Zoom</div>
+        </div>
+        <div class="help-section">
+          <div class="help-title">Orbit Camera Controls:</div>
+          <div>Drag mouse - Rotate around Earth</div>
+          <div>Mouse wheel - Zoom</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
