@@ -14,7 +14,7 @@
         move in free camera mode
       </div>
 
-      <div id="controls">
+      <div id="controls" style="overflow-y: auto; max-height: 80vh;">
         <h3>Simulation Controls</h3>
         <div id="satellite-controls">
           <h4>Satellites</h4>
@@ -22,7 +22,7 @@
           <button id="addSatelliteBtn">Add Satellite</button>
           <button id="removeSatelliteBtn" class="remove-btn">Remove Selected</button>
           <label for="followSelect">Follow Satellite:</label>
-          <select id="followSelect"></select>
+          <select id="followSelect" style="height: 30px;"></select>
         </div>
 
         <div class="control-group time-scale-group">
@@ -36,6 +36,7 @@
               step="1"
               value="1"
               class="time-scale-slider"
+              style="margin-bottom: 10px;"
             />
             <input
               type="number"
@@ -45,6 +46,7 @@
               step="1"
               value="1"
               class="time-scale-input"
+              style="margin-bottom: 10px;"
             />
             <span class="time-scale-display">1x</span>
           </div>
